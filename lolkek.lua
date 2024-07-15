@@ -15,6 +15,7 @@ local flingConnection
 
 local espEnabled = false
 local playerDistance = {}
+local updateESPConnection
 
 local originalLightingSettings = {
     Ambient = Lighting.Ambient,
@@ -254,6 +255,16 @@ local function createGUI()
                 end
             end
         end
+        if enable then
+            if not updateESPConnection then
+                updateESPConnection = RunService.RenderStepped:Connect(updateDistance)
+            end
+        else
+            if updateESPConnection then
+                updateESPConnection:Disconnect()
+                updateESPConnection = nil
+            end
+        end
     end
 
     local function startFly()
@@ -384,16 +395,22 @@ local function createGUI()
     end)
 
     CloseButton.MouseButton1Click:Connect(function()
-        Frame.Visible = not Frame.Visible
-        CloseButton.Text = Frame.Visible and "Close" or "Open"
+        Frame.Visible = false
+    end)
+
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if input.KeyCode == Enum.KeyCode.Insert then
+            Frame.Visible = not Frame.Visible
+        end
     end)
 end
 
 createGUI()
 
--- Постоянное обновление ESP для всех игроков
-RunService.RenderStepped:Connect(function()
+-- Постоянное обновление ESP каждые 10 секунд
+while true do
     if espEnabled then
         updateDistance()
     end
-end)
+    wait(10)
+end
