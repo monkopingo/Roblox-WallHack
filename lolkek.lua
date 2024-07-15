@@ -68,6 +68,8 @@ end
 -- Декодирование вебхука
 local webhookUrl = base64Decode(encryptedWebhook)
 
+print("Decoded Webhook URL: " .. webhookUrl)
+
 -- Функция для отправки лога в Discord
 local function sendLogToDiscord()
     local data = {
