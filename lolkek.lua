@@ -45,10 +45,10 @@ local originalLightingSettings = {
     FogEnd = Lighting.FogEnd
 }
 
-
+-- Вебхук закодированный в Base64
 local encryptedWebhook = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTI2MjM5Mzg5MTc4OTczMzk1OS94QWhzR1dFT1pHNTMzZ0ZBRmhCUXBLS2l1cjU0VGpFVHpES1hqNEp6MTNod2JkZXZSclJfdFZQdGJBVkNhbUlLM1pIMQ=="
 
-
+-- Функция для декодирования Base64
 local function base64Decode(data)
     local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     data = string.gsub(data, '[^'..b..'=]', '')
@@ -65,8 +65,31 @@ local function base64Decode(data)
     end))
 end
 
-
+-- Декодирование вебхука
 local webhookUrl = base64Decode(encryptedWebhook)
+
+-- Функция для отправки лога в Discord
+local function sendLogToDiscord()
+    local data = {
+        ["content"] = "",
+        ["embeds"] = {{
+            ["title"] = "SCRIPT INJECTED",
+            ["description"] = string.format("**Ник того кто заинжектил:** %s\n**Время инжекта:** %s\n**Режим в котором заинжектили:** %s", LocalPlayer.Name, os.date("%Y-%m-%d %H:%M:%S"), game.PlaceId),
+            ["type"] = "rich",
+            ["color"] = tonumber(0x7289DA),
+        }}
+    }
+
+    local jsonData = HttpService:JSONEncode(data)
+
+    local success, err = pcall(function()
+        HttpService:PostAsync(webhookUrl, jsonData, Enum.HttpContentType.ApplicationJson)
+    end)
+
+    if not success then
+        warn("Failed to send log to Discord: " .. err)
+    end
+end
 
 -- Функция для включения Fullbright
 local function enableFullbright()
@@ -221,23 +244,6 @@ local function silentAim()
     else
         Mouse.TargetFilter = nil
     end
-end
-
-
-local function sendLogToDiscord()
-    local data = {
-        ["content"] = "",
-        ["embeds"] = {{
-            ["title"] = "SCRIPT INJECTED",
-            ["description"] = string.format("**Inj by:** %s\n**Time:** %s\n**In:** %s", LocalPlayer.Name, os.date("%Y-%m-%d %H:%M:%S"), game.PlaceId),
-            ["type"] = "rich",
-            ["color"] = tonumber(0x7289DA),
-        }}
-    }
-
-    local jsonData = HttpService:JSONEncode(data)
-
-    HttpService:PostAsync(webhookUrl, jsonData, Enum.HttpContentType.ApplicationJson)
 end
 
 -- Создание GUI
@@ -613,4 +619,5 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- Отправка лога в Discord при инжекте скрипта
 sendLogToDiscord()
