@@ -4,6 +4,7 @@ local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Teams = game:GetService("Teams")
+local Mouse = LocalPlayer:GetMouse()
 
 local flying = false
 local flySpeed = 50
@@ -17,8 +18,18 @@ local espEnabled = false
 local playerDistance = {}
 local updateESPConnection
 
+local silentAimEnabled = false
 local speedHackEnabled = false
 local jumpHackEnabled = false
+
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Filled = false
+fovCircle.Thickness = 2
+fovCircle.Color = Color3.fromRGB(255, 255, 255)
+fovCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
+
+local fovRadius = 100
 
 local originalWalkSpeed = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed or 16
 local originalJumpPower = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower or 50
@@ -160,6 +171,33 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
+-- Функция для получения ближайшего врага
+local function getClosestEnemy()
+    local closestEnemy = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).magnitude
+            if distance < shortestDistance and distance <= fovRadius then
+                closestEnemy = player
+                shortestDistance = distance
+            end
+        end
+    end
+
+    return closestEnemy
+end
+
+-- Функция для Silent Aim
+local function silentAim()
+    local closestEnemy = getClosestEnemy()
+    if closestEnemy and closestEnemy.Character and closestEnemy.Character:FindFirstChild("HumanoidRootPart") then
+        local enemyRootPart = closestEnemy.Character.HumanoidRootPart
+        Mouse.Hit = enemyRootPart.CFrame
+    end
+end
+
 -- Создание GUI
 local function createGUI()
     local ScreenGui = Instance.new("ScreenGui")
@@ -168,8 +206,8 @@ local function createGUI()
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 300, 0, 450)
-    Frame.Position = UDim2.new(0.5, -150, 0.5, -225)
+    Frame.Size = UDim2.new(0, 300, 0, 550)
+    Frame.Position = UDim2.new(0.5, -150, 0.5, -275)
     Frame.BackgroundTransparency = 0.5
     Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     Frame.Active = true
@@ -247,6 +285,24 @@ local function createGUI()
     JumpHackSlider.Position = UDim2.new(0, 25, 0, 405)
     JumpHackSlider.Text = "Jump Hack: 50"
     JumpHackSlider.Parent = Frame
+
+    local EnableSilentAimButton = Instance.new("TextButton")
+    EnableSilentAimButton.Size = UDim2.new(0, 100, 0, 50)
+    EnableSilentAimButton.Position = UDim2.new(0, 25, 0, 445)
+    EnableSilentAimButton.Text = "Enable Silent Aim"
+    EnableSilentAimButton.Parent = Frame
+
+    local DisableSilentAimButton = Instance.new("TextButton")
+    DisableSilentAimButton.Size = UDim2.new(0, 100, 0, 50)
+    DisableSilentAimButton.Position = UDim2.new(0, 175, 0, 445)
+    DisableSilentAimButton.Text = "Disable Silent Aim"
+    DisableSilentAimButton.Parent = Frame
+
+    local FOVSlider = Instance.new("TextBox")
+    FOVSlider.Size = UDim2.new(0, 250, 0, 25)
+    FOVSlider.Position = UDim2.new(0, 25, 0, 500)
+    FOVSlider.Text = "FOV Radius: 100"
+    FOVSlider.Parent = Frame
 
     local CloseButton = Instance.new("TextButton")
     CloseButton.Size = UDim2.new(0, 100, 0, 25)
@@ -366,6 +422,23 @@ local function createGUI()
         end
     end
 
+    local function enableSilentAim()
+        silentAimEnabled = true
+        fovCircle.Visible = true
+        Mouse.TargetFilter = LocalPlayer.Character
+        RunService.RenderStepped:Connect(function()
+            if silentAimEnabled then
+                silentAim()
+            end
+        end)
+    end
+
+    local function disableSilentAim()
+        silentAimEnabled = false
+        fovCircle.Visible = false
+        Mouse.TargetFilter = nil
+    end
+
     EnableESPButton.MouseButton1Click:Connect(function()
         toggleESP(true)
     end)
@@ -450,6 +523,27 @@ local function createGUI()
         end
     end)
 
+    EnableSilentAimButton.MouseButton1Click:Connect(function()
+        enableSilentAim()
+    end)
+
+    DisableSilentAimButton.MouseButton1Click:Connect(function()
+        disableSilentAim()
+    end)
+
+    FOVSlider.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local radius = tonumber(FOVSlider.Text:match("%d+"))
+            if radius then
+                fovRadius = radius
+                fovCircle.Radius = radius
+                FOVSlider.Text = "FOV Radius: " .. radius
+            else
+                FOVSlider.Text = "FOV Radius: " .. fovRadius
+            end
+        end
+    end)
+
     CloseButton.MouseButton1Click:Connect(function()
         Frame.Visible = false
     end)
@@ -470,3 +564,10 @@ while true do
     end
     wait(10)
 end
+
+-- Обновление позиции FOV круга
+RunService.RenderStepped:Connect(function()
+    if fovCircle.Visible then
+        fovCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
+    end
+end)
