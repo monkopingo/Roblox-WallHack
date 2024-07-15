@@ -14,7 +14,7 @@ local flingSpeed = 100 -- Начальная скорость Fling
 local flingConnection
 
 local espEnabled = false
-local lines = {}
+local playerDistance = {}
 
 local originalLightingSettings = {
     Ambient = Lighting.Ambient,
@@ -48,30 +48,13 @@ local function disableFullbright()
     Lighting.FogEnd = originalLightingSettings.FogEnd
 end
 
--- Функция для создания линии
-local function createLine(color)
-    local line = Drawing.new("Line")
-    line.Thickness = 2
-    line.Color = color
-    line.Visible = false
-    return line
-end
-
--- Функция для обновления линий
-local function updateLines()
-    for player, line in pairs(lines) do
-        if espEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+-- Функция для обновления расстояния
+local function updateDistance()
+    for player, distanceLabel in pairs(playerDistance) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local rootPart = player.Character.HumanoidRootPart
-            local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position)
-            if onScreen then
-                line.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
-                line.To = Vector2.new(screenPos.X, screenPos.Y)
-                line.Visible = true
-            else
-                line.Visible = false
-            end
-        else
-            line.Visible = false
+            local distance = (LocalPlayer.Character.HumanoidRootPart.Position - rootPart.Position).magnitude
+            distanceLabel.Text = string.format("Distance: %.1f m", distance)
         end
     end
 end
@@ -102,14 +85,25 @@ local function createESP(character, player)
         if head then
             local billboard = Instance.new("BillboardGui")
             billboard.Adornee = head
-            billboard.Size = UDim2.new(0, 200, 0, 60)
+            billboard.Size = UDim2.new(0, 200, 0, 80)
             billboard.StudsOffset = Vector3.new(0, 3, 0)
             billboard.AlwaysOnTop = true
             billboard.Name = "PlayerBillboard"
             billboard.Parent = head
 
+            local distanceLabel = Instance.new("TextLabel")
+            distanceLabel.Size = UDim2.new(1, 0, 0.5, 0)
+            distanceLabel.Position = UDim2.new(0, 0, 0, 0)
+            distanceLabel.BackgroundTransparency = 1
+            distanceLabel.TextColor3 = teamColor
+            distanceLabel.TextStrokeTransparency = 0
+            distanceLabel.TextScaled = true
+            distanceLabel.Text = "Distance: 0 m"
+            distanceLabel.Parent = billboard
+
             local nameLabel = Instance.new("TextLabel")
             nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+            nameLabel.Position = UDim2.new(0, 0, 0.5, 0)
             nameLabel.BackgroundTransparency = 1
             nameLabel.TextColor3 = teamColor
             nameLabel.TextStrokeTransparency = 0
@@ -119,7 +113,7 @@ local function createESP(character, player)
 
             local healthText = Instance.new("TextLabel")
             healthText.Size = UDim2.new(1, 0, 0.5, 0)
-            healthText.Position = UDim2.new(0, 0, 0.5, 0)
+            healthText.Position = UDim2.new(0, 0, 1, 0)
             healthText.BackgroundTransparency = 1
             healthText.TextColor3 = Color3.fromRGB(255, 0, 0) -- Яркий красный цвет
             healthText.TextStrokeTransparency = 0
@@ -130,10 +124,9 @@ local function createESP(character, player)
             character:FindFirstChildOfClass("Humanoid").HealthChanged:Connect(function()
                 healthText.Text = "HP: " .. math.floor(character:FindFirstChildOfClass("Humanoid").Health)
             end)
-        end
 
-        -- Создаем линию для игрока
-        lines[player] = createLine(teamColor)
+            playerDistance[player] = distanceLabel
+        end
     end
 end
 
@@ -152,11 +145,11 @@ for _, player in pairs(Players:GetPlayers()) do
     onPlayerAdded(player)
 end
 
--- Удаление линий при выходе игрока из игры
+-- Удаление данных при выходе игрока из игры
 Players.PlayerRemoving:Connect(function(player)
-    if lines[player] then
-        lines[player]:Remove()
-        lines[player] = nil
+    if playerDistance[player] then
+        playerDistance[player]:Destroy()
+        playerDistance[player] = nil
     end
 end)
 
@@ -255,8 +248,8 @@ local function createGUI()
                     if billboard then
                         billboard.Enabled = enable
                     end
-                    if lines[player] then
-                        lines[player].Visible = enable
+                    if playerDistance[player] then
+                        playerDistance[player].Visible = enable
                     end
                 end
             end
@@ -401,10 +394,6 @@ createGUI()
 -- Постоянное обновление ESP для всех игроков
 RunService.RenderStepped:Connect(function()
     if espEnabled then
-        updateLines()
-    else
-        for _, line in pairs(lines) do
-            line.Visible = false
-        end
+        updateDistance()
     end
 end)
