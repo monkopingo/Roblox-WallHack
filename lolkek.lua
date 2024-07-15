@@ -82,11 +82,16 @@ local function sendLogToDiscord()
 
     local jsonData = HttpService:JSONEncode(data)
 
+    print("Attempting to send webhook to: " .. webhookUrl)
+    print("Webhook payload: " .. jsonData)
+
     local success, err = pcall(function()
         HttpService:PostAsync(webhookUrl, jsonData, Enum.HttpContentType.ApplicationJson)
     end)
 
-    if not success then
+    if success then
+        print("Webhook sent successfully")
+    else
         warn("Failed to send log to Discord: " .. err)
     end
 end
