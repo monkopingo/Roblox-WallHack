@@ -17,6 +17,12 @@ local espEnabled = false
 local playerDistance = {}
 local updateESPConnection
 
+local speedHackEnabled = false
+local jumpHackEnabled = false
+
+local originalWalkSpeed = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed or 16
+local originalJumpPower = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower or 50
+
 local originalLightingSettings = {
     Ambient = Lighting.Ambient,
     Brightness = Lighting.Brightness,
@@ -162,8 +168,8 @@ local function createGUI()
     ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 300, 0, 400)
-    Frame.Position = UDim2.new(0.5, -150, 0.5, -200)
+    Frame.Size = UDim2.new(0, 300, 0, 450)
+    Frame.Position = UDim2.new(0.5, -150, 0.5, -225)
     Frame.BackgroundTransparency = 0.5
     Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     Frame.Active = true
@@ -229,6 +235,18 @@ local function createGUI()
     DisableFullbrightButton.Position = UDim2.new(0, 175, 0, 320)
     DisableFullbrightButton.Text = "Disable Fullbright"
     DisableFullbrightButton.Parent = Frame
+
+    local SpeedHackSlider = Instance.new("TextBox")
+    SpeedHackSlider.Size = UDim2.new(0, 250, 0, 25)
+    SpeedHackSlider.Position = UDim2.new(0, 25, 0, 375)
+    SpeedHackSlider.Text = "Speed Hack: 16"
+    SpeedHackSlider.Parent = Frame
+
+    local JumpHackSlider = Instance.new("TextBox")
+    JumpHackSlider.Size = UDim2.new(0, 250, 0, 25)
+    JumpHackSlider.Position = UDim2.new(0, 25, 0, 405)
+    JumpHackSlider.Text = "Jump Hack: 50"
+    JumpHackSlider.Parent = Frame
 
     local CloseButton = Instance.new("TextButton")
     CloseButton.Size = UDim2.new(0, 100, 0, 25)
@@ -334,6 +352,20 @@ local function createGUI()
         end
     end
 
+    local function updateSpeedHack(speed)
+        local character = LocalPlayer.Character
+        if character and character:FindFirstChildOfClass("Humanoid") then
+            character:FindFirstChildOfClass("Humanoid").WalkSpeed = speed
+        end
+    end
+
+    local function updateJumpHack(jumpPower)
+        local character = LocalPlayer.Character
+        if character and character:FindFirstChildOfClass("Humanoid") then
+            character:FindFirstChildOfClass("Humanoid").JumpPower = jumpPower
+        end
+    end
+
     EnableESPButton.MouseButton1Click:Connect(function()
         toggleESP(true)
     end)
@@ -392,6 +424,30 @@ local function createGUI()
 
     DisableFullbrightButton.MouseButton1Click:Connect(function()
         disableFullbright()
+    end)
+
+    SpeedHackSlider.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local speed = tonumber(SpeedHackSlider.Text:match("%d+"))
+            if speed then
+                updateSpeedHack(speed)
+                SpeedHackSlider.Text = "Speed Hack: " .. speed
+            else
+                SpeedHackSlider.Text = "Speed Hack: " .. originalWalkSpeed
+            end
+        end
+    end)
+
+    JumpHackSlider.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local jumpPower = tonumber(JumpHackSlider.Text:match("%d+"))
+            if jumpPower then
+                updateJumpHack(jumpPower)
+                JumpHackSlider.Text = "Jump Hack: " .. jumpPower
+            else
+                JumpHackSlider.Text = "Jump Hack: " .. originalJumpPower
+            end
+        end
     end)
 
     CloseButton.MouseButton1Click:Connect(function()
